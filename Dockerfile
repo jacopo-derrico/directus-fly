@@ -1,42 +1,48 @@
-# base node image
-FROM node:20-alpine
+# Use Node.js 20 Alpine base image
+FROM node:20-alpine AS base
 
-# set for base and all layer that inherit from it
-ENV NODE_ENV production
+# Set environment variables
+ENV NODE_ENV=production \
+    PORT=6055 \
+    DATABASE_URL=file:/data/database/data.db
 
-RUN apt-get update && apt-get install -y openssl sqlite3
+# Install required system dependencies
+RUN apk add --no-cache openssl sqlite
 
-# Install all node_modules, including dev dependencies
-FROM base as deps
-
+# Install dependencies stage
+FROM base AS deps
 WORKDIR /myapp
-
-ADD package.json .npmrc ./
+COPY package.json package-lock.json ./
 RUN npm install --production=false
 
-# Setup production node_modules
-FROM base as production-deps
-
+# Production dependencies stage
+FROM base AS production-deps
 WORKDIR /myapp
-
 COPY --from=deps /myapp/node_modules /myapp/node_modules
-ADD package.json .npmrc ./
+COPY package.json package-lock.json ./
 RUN npm prune --production
 
-# Finally, build the production image with minimal footprint
+# Final production image
 FROM base
-
-ENV DATABASE_URL=file:/data/database/data.db
-ENV PORT="6055"
-ENV NODE_ENV="production"
-
-# add shortcut for connecting to database CLI
-RUN echo "#!/bin/sh\nset -x\nsqlite3 \$DATABASE_URL" > /usr/local/bin/database-cli && chmod +x /usr/local/bin/database-cli
-
 WORKDIR /myapp
 
+# Copy production node_modules
 COPY --from=production-deps /myapp/node_modules /myapp/node_modules
 
-ADD . .
+# Copy application files
+COPY . .
 
-CMD ["bash", "start.sh"]
+# Create database directory and ensure it's writable
+RUN mkdir -p /data/database && \
+    touch /data/database/data.db && \
+    chmod -R a+rw /data/database
+
+# Add shortcut for connecting to database CLI
+RUN echo "#!/bin/sh\nset -x\nsqlite3 \$DATABASE_URL" > /usr/local/bin/database-cli && \
+    chmod +x /usr/local/bin/database-cli
+
+# Expose the port Directus runs on
+EXPOSE 6055
+
+# Start command (ensure start.sh exists and is executable)
+CMD ["sh", "start.sh"]
