@@ -19,7 +19,7 @@ kill_timeout = '5s'
   DB_CLIENT = 'sqlite3'
   DB_FILENAME = '/data/database/data.db'
   FLY_PRIMARY_REGION = 'fra'
-  PORT = '6055'
+  PORT = '8055'
   STORAGE_LOCAL_DRIVER = 'local'
   STORAGE_LOCAL_ROOT = '/data/uploads'
   STORAGE_LOCATIONS = 'local'
@@ -38,7 +38,7 @@ kill_timeout = '5s'
 
 [[services]]
   protocol = 'tcp'
-  internal_port = 6055
+  internal_port = 8055
   processes = ['app']
 
   [[services.ports]]
