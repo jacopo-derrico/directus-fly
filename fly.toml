@@ -1,60 +1,75 @@
-# fly.toml file generated for directusfly on 2022-09-14T05:00:58Z
+# fly.toml app configuration file generated for jd-portfolio on 2025-04-28T15:24:31+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "directusfly"
-kill_signal = "SIGINT"
-kill_timeout = 5
-processes = []
-
-[env]
-  DB_CLIENT = "sqlite3"
-  DB_FILENAME = "/data/database/data.db"
-  STORAGE_LOCATIONS = "local"
-  STORAGE_LOCAL_DRIVER = "local"
-  STORAGE_LOCAL_ROOT = "/data/uploads"
-  FLY_PRIMARY_REGION = "sea"
-  PORT = 6055
+app = 'jd-portfolio'
+primary_region = 'fra'
+kill_signal = 'SIGINT'
+kill_timeout = '5s'
 
 [experimental]
-  allowed_public_ports = []
+  cmd = ['start.sh']
+  entrypoint = ['sh']
   auto_rollback = true
-  cmd = "start.sh"
-  entrypoint = "sh"
 
-[mounts]
-  destination = "/data"
-  source = "data"
+[build]
+
+[env]
+  DB_CLIENT = 'sqlite3'
+  DB_FILENAME = '/data/database/data.db'
+  FLY_PRIMARY_REGION = 'fra'
+  PORT = '6055'
+  STORAGE_LOCAL_DRIVER = 'local'
+  STORAGE_LOCAL_ROOT = '/data/uploads'
+  STORAGE_LOCATIONS = 'local'
+
+[[mounts]]
+  source = 'data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
 
 [[services]]
+  protocol = 'tcp'
   internal_port = 6055
-  processes = ["app"]
-  protocol = "tcp"
-  script_checks = []
+  processes = ['app']
+
+  [[services.ports]]
+    port = 80
+    handlers = ['http']
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ['tls', 'http']
+
   [services.concurrency]
+    type = 'connections'
     hard_limit = 25
     soft_limit = 20
-    type = "connections"
-
-  [[services.http_checks]]
-    grace_period = "5s"
-    interval = 10000
-    method = "get"
-    path = "/server/health"
-    protocol = "http"
-    timeout = 2000
-    tls_skip_verify = false
-    [services.http_checks.headers]
-
-  [[services.ports]]
-    force_https = true
-    handlers = ["http"]
-    port = 80
-
-  [[services.ports]]
-    handlers = ["tls", "http"]
-    port = 443
 
   [[services.tcp_checks]]
-    grace_period = "1s"
-    interval = "15s"
-    restart_limit = 0
-    timeout = "2s"
+    interval = '15s'
+    timeout = '2s'
+    grace_period = '1s'
+
+  [[services.http_checks]]
+    interval = '10s'
+    timeout = '2s'
+    grace_period = '5s'
+    method = 'get'
+    path = '/server/health'
+    protocol = 'http'
+    tls_skip_verify = false
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
